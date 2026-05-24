@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>RunTrack // The Runner's Hub</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0f1117; color: #f0f4f8; font-family: 'Noto Sans KR', -apple-system, sans-serif; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: #1a1f2e; }
+    ::-webkit-scrollbar-thumb { background: #c8f230; border-radius: 2px; }
+
+    .card { background: #1a1f2e; border: 1px solid #2d3548; border-radius: 16px; padding: 18px; }
+    .card2 { background: #22293a; border: 1px solid #2d3548; border-radius: 12px; padding: 14px; }
+
+    .tag { display: inline-flex; align-items: center; background: rgba(200,242,48,0.1); color: #c8f230; border: 1px solid rgba(200,242,48,0.25); border-radius: 999px; padding: 3px 10px; font-size: 11px; font-weight: 600; }
+
+    .btn-lime { background: #c8f230; color: #0f1117; font-weight: 700; border: none; cursor: pointer; transition: opacity 0.15s; font-family: inherit; }
+    .btn-lime:active { opacity: 0.8; }
+    .btn-outline { background: rgba(200,242,48,0.1); color: #c8f230; border: 1px solid rgba(200,242,48,0.3); cursor: pointer; font-family: inherit; transition: background 0.15s; }
+    .btn-outline:active { background: rgba(200,242,48,0.2); }
+
+    .checkin { background: rgba(200,242,48,0.1); border: 1px solid rgba(200,242,48,0.25); color: #c8f230; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px; white-space: nowrap; }
+
+    .diff { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+    .diff-b { background: rgba(74,222,128,0.15); color: #4ade80; }
+    .diff-m { background: rgba(251,191,36,0.15); color: #fbbf24; }
+    .diff-a { background: rgba(248,113,113,0.15); color: #f87171; }
+
+    .dist-p { background: #c8f230; color: #0f1117; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 4px; }
+    .dist-s { background: #2d3548; color: #8892a4; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; }
+
+    input, textarea { background: #22293a; border: 1px solid #2d3548; color: #f0f4f8; border-radius: 10px; padding: 11px 13px; width: 100%; outline: none; font-family: inherit; font-size: 14px; transition: border-color 0.2s; }
+    input:focus, textarea:focus { border-color: #c8f230; }
+    input::placeholder, textarea::placeholder { color: #4a5568; }
+
+    .scroll-x { display: flex; gap: 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .scroll-x::-webkit-scrollbar { display: none; }
+
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(15,17,23,0.97); backdrop-filter: blur(12px); border-top: 1px solid #2d3548; z-index: 50; }
+    .nav-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 9px 0; cursor: pointer; transition: color 0.15s; flex: 1; color: #4a5568; border: none; background: none; font-family: inherit; }
+    .nav-btn.on { color: #c8f230; }
+
+    .top-bar { position: sticky; top: 0; z-index: 40; background: rgba(15,17,23,0.97); backdrop-filter: blur(12px); border-bottom: 1px solid #2d3548; }
+
+    .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.82); backdrop-filter: blur(6px); z-index: 100; display: flex; align-items: flex-end; justify-content: center; }
+    @media(min-width:600px){ .modal-bg { align-items: center; padding: 16px; } }
+    .modal-sheet { background: #1a1f2e; border: 1px solid #2d3548; width: 100%; max-width: 500px; border-radius: 22px 22px 0 0; max-height: 92vh; overflow-y: auto; }
+    @media(min-width:600px){ .modal-sheet { border-radius: 18px; } }
+
+    .gradient-border { background: linear-gradient(#1a1f2e,#1a1f2e) padding-box, linear-gradient(135deg,#c8f230,#4ade80,#22d3ee) border-box; border: 2px solid transparent !important; }
+
+    @keyframes up { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    .anim { animation: up 0.25s ease; }
+
+    .press:active { transform: scale(0.97); opacity: 0.85; }
+    .press { transition: transform 0.1s, opacity 0.1s; cursor: pointer; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+/* ── DATA ─────────────────────────────────────────── */
+const TODAY = new Date('2026-05-24');
+
+const WEEK = [
+  { d:'TODAY', dt:'5/24', icon:'⛅', hi:18, lo:11, c:'Cloudy' },
+  { d:'SUN',   dt:'5/25', icon:'☀️', hi:22, lo:13, c:'Sunny'  },
+  { d:'MON',   dt:'5/26', icon:'☀️', hi:24, lo:15, c:'Sunny'  },
+  { d:'TUE',   dt:'5/27', icon:'🌧️', hi:19, lo:14, c:'Rain'   },
+  { d:'WED',   dt:'5/28', icon:'⛅', hi:17, lo:12, c:'Cloudy' },
+  { d:'THU',   dt:'5/29', icon:'☀️', hi:21, lo:13, c:'Sunny'  },
+  { d:'FRI',   dt:'5/30', icon:'⛅', hi:20, lo:14, c:'Partly' },
+];
+
+const OUTFIT = {
+  hot:  { label:'싱글렛 데이 🔥', items:['메쉬 싱글렛','3인치 쇼츠','크루 삭스'],      desc:'18°C+ — 통기성 우선, 초경량 소재 추천' },
+  mild: { label:'레이어링 데이 🧥', items:['긴팔 베이스레이어','하프 타이즈','러닝 캡'], desc:'10~17°C — 얇은 레이어링으로 체온 조절' },
+  cold: { label:'풀 기어 데이 🥶', items:['바람막이 재킷','타이즈','글러브'],           desc:'~10°C — 바람막이 필수, 체온 유지 우선' },
+  rain: { label:'레인 기어 데이 🌧️', items:['방수 재킷','하프 타이즈','방수 캡'],       desc:'비 예보 — 방수 소재, 밝은 컬러 권장' },
+};
+const getOutfit = (hi, c) => c==='Rain'?'rain': hi>=18?'hot': hi>=10?'mild':'cold';
+
+const COURSES = [
+  { id:1, name:'팔당역 ~ 두물머리', en:'Paldang LSD',       dist:'왕복 24km', ci:429, dif:'초급', loc:'경기 남양주', tags:['평지','강변','인증'],  storage:'팔당역 1번 출구 자전거 보관대 옆 전용 락커', supply:'남한강 자전거길 진입로 내 개방 화장실 3소', tip:'완주 후 팔당역 인근 초계국수 거리에서 리커버리 밀 적극 추천!' },
+  { id:2, name:'북악스카이웨이 업힐', en:'Bugaksan Uphill',  dist:'6km',       ci:218, dif:'중급', loc:'서울 성북구', tags:['업힐','경치','도심'],  storage:'근처 공영주차장 이용',              supply:'편의점 및 자판기 다수',              tip:'정상 팔각정에서 서울 전경 인증샷 필수!' },
+  { id:3, name:'한강 여의도 순환',   en:'Yeouido Loop',      dist:'11km',      ci:156, dif:'초급', loc:'서울 영등포', tags:['평지','야경','접근성'], storage:'여의도 한강공원 물품보관함',       supply:'한강공원 편의시설',                  tip:'주말 새벽 5시 이전 방문 시 한강 안개 절경 감상 가능.' },
+  { id:4, name:'청계천 도심 런',     en:'Cheonggyecheon Run', dist:'8km',      ci:98,  dif:'초급', loc:'서울 중구',   tags:['도심','야경','평지'],  storage:'청계광장 인근 공영주차장',          supply:'곳곳에 편의점',                      tip:'청계광장 → 광교 구간, 야간 러닝 명소.' },
+];
+
+const EVENTS = [
+  { id:1, name:'서울 하프 마라톤',      en:'Seoul Half Marathon', date:'2026-06-07', loc:'여의도공원',   dists:['Half','10K'],       outfit:'여름철 기온(22°C) 대비, 초경량 메쉬 싱글렛 지향' },
+  { id:2, name:'하이원 트레일 러닝',    en:'High1 Trail Run',     date:'2026-06-21', loc:'정선 하이원',  dists:['42K','20K','12K'],  outfit:'산악 기후 대비, 수분팩·트레일 베스트 장착 추천' },
+  { id:3, name:'춘천마라톤 (조선일보)', en:'Chuncheon Marathon',  date:'2026-10-25', loc:'의암호 순환코스', dists:['Full','10K'],     outfit:'가을 환절기(10°C 내외), 바람막이 조합 필수' },
+];
+
+const GEAR = [
+  { id:1, brand:'Tracksmith', name:'메쉬 싱글렛',      cat:'상의',    w:'18°C+',   tags:['#경량','#통기'], price:'89,000₩',  rec:true  },
+  { id:2, brand:'Satisfy',    name:'3인치 버피 쇼츠',  cat:'하의',    w:'All',      tags:['#가성비'],       price:'65,000₩',  rec:true  },
+  { id:3, brand:'Stance',     name:'크루 러닝 삭스',   cat:'양말',    w:'All',      tags:['#기본템'],       price:'18,000₩',  rec:true  },
+  { id:4, brand:'Soar',       name:'바람막이 재킷',    cat:'아우터',  w:'~17°C',    tags:['#봄가을'],       price:'245,000₩', rec:false },
+  { id:5, brand:'Janji',      name:'하프 타이즈',       cat:'하의',    w:'~15°C',    tags:['#보온','#압박'], price:'72,000₩',  rec:false },
+  { id:6, brand:'On Running', name:'러닝 캡',          cat:'액세서리', w:'햇빛강할때', tags:['#선캡'],       price:'55,000₩',  rec:false },
+  { id:7, brand:'Nike',       name:'페가수스 41',       cat:'신발',    w:'All',      tags:['#로드','#쿠션'], price:'179,000₩', rec:false },
+  { id:8, brand:'Garmin',     name:'포러너 165',        cat:'액세서리', w:'All',     tags:['#GPS워치'],      price:'299,000₩', rec:false },
+];
+
+const FEED = [
+  { id:1, user:'Runner77',    type:'Shopping',    body:'가성비 3인치 팬츠 발견! 허리춤 러닝벨트 내장형이라 정말 편해요.', tags:['#가성비','#하프타이즈'], time:'2h ago' },
+  { id:2, user:'PaldangKing', type:'Course Tip',  body:'팔당역 1번출구 옆 공영 자전거보관소 뒤쪽에 락커 운영중! 짐 걱정 No', tags:['#팔당역','#락커'],  time:'5h ago' },
+  { id:3, user:'SeoulTrailer',type:'Course Tip',  body:'북악 오르막 직전 GS25에서 에너지젤 보충. 정상까지 보급 없음!', tags:['#북악','#보급'],    time:'1d ago' },
+];
+
+const G_ICON = { '상의':'👕','하의':'🩳','아우터':'🧥','양말':'🧦','신발':'👟','액세서리':'⌚' };
+const DIFF_CLS = { '초급':'diff-b','중급':'diff-m','고급':'diff-a' };
+
+function dday(dateStr) {
+  const diff = Math.ceil((new Date(dateStr) - TODAY) / 86400000);
+  return diff===0?'D-Day': diff>0?`D-${diff}`:`D+${Math.abs(diff)}`;
+}
+
+/* ── SHARED COMPONENTS ──────────────────────────────── */
+function SecHead({ icon, title, sub, action }) {
+  return (
+    <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:14 }}>
+      <div>
+        <h2 style={{ fontSize:14, fontWeight:700, display:'flex', alignItems:'center', gap:6 }}>
+          <span>{icon}</span><span style={{ color:'#c8f230' }}>{title}</span>
+        </h2>
+        {sub && <p style={{ fontSize:11, color:'#6b7280', marginTop:3 }}>{sub}</p>}
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function FeedItem({ item }) {
+  return (
+    <div className="card2" style={{ marginBottom:8 }}>
+      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:5 }}>
+        <span style={{ fontSize:13, fontWeight:700, color:'#c8f230' }}>{item.user}</span>
+        <span style={{ fontSize:10, color:'#4a5568' }}>{item.time}</span>
+      </div>
+      <span style={{ fontSize:10, background:'#2d3548', color:'#8892a4', borderRadius:4, padding:'1px 6px', fontWeight:600 }}>{item.type}</span>
+      <p style={{ fontSize:13, color:'#d1d5db', marginTop:6, lineHeight:1.5 }}>"{item.body}"</p>
+      <div style={{ marginTop:7, display:'flex', gap:5, flexWrap:'wrap' }}>
+        {item.tags.map(t => <span key={t} className="tag">{t}</span>)}
+      </div>
+    </div>
+  );
+}
+
+function SubmitForm({ onDone }) {
+  const [cat, setCat] = useState('쇼핑몰');
+  const [url, setUrl] = useState('');
+  const [desc, setDesc] = useState('');
+  const [tags, setTags] = useState('');
+  const [ok, setOk] = useState(false);
+
+  function submit(e) {
+    e.preventDefault();
+    setOk(true);
+    setTimeout(() => { setOk(false); setUrl(''); setDesc(''); setTags(''); onDone && onDone(); }, 1600);
+  }
+
+  return (
+    <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:12 }}>
+      <div>
+        <p style={{ fontSize:11, color:'#6b7280', fontWeight:700, marginBottom:7 }}>카테고리</p>
+        <div style={{ display:'flex', gap:7 }}>
+          {['쇼핑몰','코스/맛집','마라톤 대회'].map(c => (
+            <button key={c} type="button" onClick={() => setCat(c)}
+              style={{ flex:1, borderRadius:9, padding:'9px 0', fontSize:12, fontWeight:700, border:'none', cursor:'pointer',
+                       background: cat===c ? '#c8f230' : '#22293a', color: cat===c ? '#0f1117' : '#6b7280' }}>
+              {c}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div><p style={{ fontSize:11, color:'#6b7280', fontWeight:700, marginBottom:5 }}>URL</p>
+        <input value={url} onChange={e=>setUrl(e.target.value)} type="url" placeholder="https://..." required /></div>
+      <div><p style={{ fontSize:11, color:'#6b7280', fontWeight:700, marginBottom:5 }}>한 줄 설명</p>
+        <textarea value={desc} onChange={e=>setDesc(e.target.value)} placeholder="핵심만 간결하게!" rows={2} required style={{ resize:'none' }} /></div>
+      <div><p style={{ fontSize:11, color:'#6b7280', fontWeight:700, marginBottom:5 }}>태그</p>
+        <input value={tags} onChange={e=>setTags(e.target.value)} placeholder="#팔당역, #가성비" /></div>
+      <button type="submit" className="btn-lime" style={{ borderRadius:11, padding:'13px 0', fontSize:14, marginTop:2 }}>
+        {ok ? '✓ 등록 완료!' : '제보 등록하기'}
+      </button>
+    </form>
+  );
+}
+
+/* ── MODALS ─────────────────────────────────────────── */
+function AddModal({ onClose }) {
+  return (
+    <div className="modal-bg" onClick={e => e.target===e.currentTarget && onClose()}>
+      <div className="modal-sheet">
+        <div style={{ width:36, height:4, background:'#2d3548', borderRadius:2, margin:'12px auto 0' }} />
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'14px 20px 0' }}>
+          <h2 style={{ fontSize:17, fontWeight:900 }}><span style={{ color:'#c8f230' }}>+</span> 링크 등록</h2>
+          <button onClick={onClose} style={{ background:'none', border:'none', color:'#6b7280', fontSize:22, cursor:'pointer' }}>✕</button>
+        </div>
+        <div style={{ padding:20 }}>
+          <SubmitForm onDone={onClose} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CourseModal({ course, onClose }) {
+  if (!course) return null;
+  return (
+    <div className="modal-bg" onClick={e => e.target===e.currentTarget && onClose()}>
+      <div className="modal-sheet">
+        <div style={{ width:36, height:4, background:'#2d3548', borderRadius:2, margin:'12px auto 0' }} />
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'14px 20px 0' }}>
+          <h2 style={{ fontSize:16, fontWeight:900 }}>{course.name}</h2>
+          <button onClick={onClose} style={{ background:'none', border:'none', color:'#6b7280', fontSize:22, cursor:'pointer' }}>✕</button>
+        </div>
+        <div style={{ padding:20 }}>
+          <div style={{ display:'flex', gap:7, marginBottom:10 }}>
+            <span className={`diff ${DIFF_CLS[course.dif]}`}>{course.dif}</span>
+            <span className="checkin">{course.ci.toLocaleString()}명 체크인</span>
+            <span style={{ fontSize:12, color:'#6b7280', alignSelf:'center' }}>{course.dist}</span>
+          </div>
+          <div style={{ display:'flex', gap:5, flexWrap:'wrap', marginBottom:14 }}>
+            {course.tags.map(t => <span key={t} className="tag">{t}</span>)}
+          </div>
+          {[['🔒','보관소',course.storage],['🚰','보급',course.supply],['💡','꿀팁',course.tip]].map(([ico,lbl,val]) => (
+            <div key={lbl} style={{ background:'#22293a', borderRadius:10, padding:12, display:'flex', gap:10, marginBottom:9,
+                                     border: lbl==='꿀팁'?'1px solid rgba(200,242,48,0.2)':'1px solid #2d3548' }}>
+              <span style={{ fontSize:18 }}>{ico}</span>
+              <div><p style={{ fontSize:10, color: lbl==='꿀팁'?'#c8f230':'#6b7280', fontWeight:700, marginBottom:2 }}>{lbl}</p>
+                <p style={{ fontSize:12, color:'#d1d5db' }}>{val}</p></div>
+            </div>
+          ))}
+          <button className="btn-outline" onClick={onClose}
+            style={{ width:'100%', borderRadius:11, padding:'12px 0', fontSize:13, fontWeight:700, marginTop:6 }}>
+            코스 탭에서 상세보기 →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── TABS ────────────────────────────────────────────── */
+function HomeTab({ onAdd, onCourse }) {
+  const today = WEEK[0];
+  const otype = getOutfit(today.hi, today.c);
+  const outfit = OUTFIT[otype];
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:13 }} className="anim">
+
+      {/* Weather card */}
+      <div className="card">
+        <SecHead icon="🌤️" title="Weather & Outfit" sub="서울특별시 기준 · Mock Data" />
+        <div className="card2" style={{ marginBottom:12 }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+            <div>
+              <div style={{ display:'flex', alignItems:'baseline', gap:5 }}>
+                <span style={{ fontSize:46, fontWeight:900, color:'#c8f230', lineHeight:1 }}>{today.hi}°</span>
+                <span style={{ fontSize:18, color:'#4a5568' }}>/ {today.lo}°</span>
+              </div>
+              <p style={{ fontSize:13, color:'#c8f230', fontWeight:700, marginTop:4 }}>"{outfit.label}"</p>
+              <p style={{ fontSize:11, color:'#6b7280', marginTop:2 }}>{outfit.desc}</p>
+            </div>
+            <span style={{ fontSize:52 }}>{today.icon}</span>
+          </div>
+          <div style={{ marginTop:11, display:'flex', flexWrap:'wrap', gap:6 }}>
+            {outfit.items.map(i => <span key={i} className="tag">{i}</span>)}
+          </div>
+        </div>
+        {/* 7-day row */}
+        <div className="scroll-x">
+          {WEEK.map((w, i) => (
+            <div key={w.d} style={{ flex:'0 0 auto', minWidth:58, background: i===0?'rgba(200,242,48,0.1)':'#22293a',
+              border: i===0?'1px solid rgba(200,242,48,0.4)':'1px solid #2d3548',
+              borderRadius:11, padding:'9px 10px', textAlign:'center' }}>
+              <p style={{ fontSize:10, fontWeight:700, color: i===0?'#c8f230':'#6b7280' }}>{w.d}</p>
+              <p style={{ fontSize:9, color:'#4a5568', marginTop:1 }}>{w.dt}</p>
+              <span style={{ fontSize:20, display:'block', margin:'5px 0' }}>{w.icon}</span>
+              <p style={{ fontSize:13, fontWeight:700 }}>{w.hi}°</p>
+              <p style={{ fontSize:11, color:'#6b7280' }}>{w.lo}°</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Hot Spots */}
+      <div className="card">
+        <SecHead icon="📍" title="Hot Running Spots" sub="실시간 GPS 체크인 기준 랭킹" />
+        <div style={{ display:'flex', flexDirection:'column', gap:9 }}>
+          {COURSES.map((c, i) => (
+            <div key={c.id} className="card2 press" onClick={() => onCourse(c)}
+              style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10, flex:1, minWidth:0 }}>
+                <span style={{ fontSize:17, fontWeight:900, color: i<2?'#c8f230':'#4a5568', minWidth:22, textAlign:'center' }}>{i+1}</span>
+                <div style={{ minWidth:0 }}>
+                  <p style={{ fontWeight:700, fontSize:13, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.name}</p>
+                  <p style={{ fontSize:11, color:'#6b7280', marginTop:1 }}>{c.dist} · {c.loc}</p>
+                </div>
+              </div>
+              <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
+                <span className="checkin">{c.ci.toLocaleString()}명</span>
+                <span style={{ color:'#4a5568' }}>›</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Featured Gear scroll */}
+      <div className="card">
+        <SecHead icon="👟" title="Today's Gear Pick" sub={`오늘 ${today.hi}°C 날씨 기준 추천`} />
+        <div className="scroll-x">
+          {GEAR.map(g => (
+            <div key={g.id} className="press" style={{ flex:'0 0 auto', width:120, background:'#22293a',
+              border: g.rec?'1px solid rgba(200,242,48,0.4)':'1px solid #2d3548', borderRadius:12, padding:12 }}>
+              {g.rec && <span style={{ fontSize:9, fontWeight:700, background:'rgba(200,242,48,0.15)', color:'#c8f230', borderRadius:4, padding:'2px 6px', display:'inline-block', marginBottom:5 }}>TODAY ✓</span>}
+              <div style={{ fontSize:26, marginBottom:5 }}>{G_ICON[g.cat]||'📦'}</div>
+              <p style={{ fontSize:10, color:'#6b7280' }}>{g.brand}</p>
+              <p style={{ fontSize:12, fontWeight:700, marginTop:2 }}>{g.name}</p>
+              <p style={{ fontSize:11, color:'#c8f230', marginTop:4 }}>{g.w}</p>
+              <p style={{ fontSize:12, fontWeight:800, color:'#e5e7eb', marginTop:3 }}>{g.price}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Runner's Feed */}
+      <div className="card">
+        <SecHead icon="👥" title="Runner's Feed" sub="유저 제보 실시간 피드"
+          action={<button className="btn-outline" onClick={onAdd} style={{ borderRadius:8, padding:'6px 11px', fontSize:12, fontWeight:700, cursor:'pointer' }}>+ 제보</button>} />
+        {FEED.map(f => <FeedItem key={f.id} item={f} />)}
+      </div>
+
+    </div>
+  );
+}
+
+function StoreTab({ onAdd }) {
+  const [cat, setCat] = useState('전체');
+  const cats = ['전체','상의','하의','아우터','양말','신발','액세서리'];
+  const list = cat==='전체' ? GEAR : GEAR.filter(g => g.cat===cat);
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:13 }} className="anim">
+      <div className="card">
+        <SecHead icon="🛍️" title="Gear Store" sub="러닝 기어 브랜드 모아보기" />
+        <div className="scroll-x" style={{ marginBottom:14 }}>
+          {cats.map(c => (
+            <button key={c} onClick={() => setCat(c)} style={{ flex:'0 0 auto', borderRadius:999, padding:'7px 15px', fontSize:12, fontWeight:700,
+              border:'none', cursor:'pointer', background: cat===c?'#c8f230':'#22293a', color: cat===c?'#0f1117':'#6b7280' }}>{c}</button>
+          ))}
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:9 }}>
+          {list.map(g => (
+            <div key={g.id} className="card2 press" style={{ border: g.rec?'1px solid rgba(200,242,48,0.4)':'1px solid #2d3548' }}>
+              {g.rec && <span style={{ fontSize:9, fontWeight:700, background:'rgba(200,242,48,0.15)', color:'#c8f230', borderRadius:4, padding:'2px 6px', display:'inline-block', marginBottom:5 }}>오늘 추천</span>}
+              <div style={{ fontSize:26, marginBottom:5 }}>{G_ICON[g.cat]||'📦'}</div>
+              <p style={{ fontSize:10, color:'#6b7280' }}>{g.brand}</p>
+              <p style={{ fontSize:13, fontWeight:700, marginTop:2 }}>{g.name}</p>
+              <p style={{ fontSize:11, color:'#c8f230', marginTop:4 }}>{g.w}</p>
+              <p style={{ fontSize:13, fontWeight:800, color:'#e5e7eb', marginTop:3 }}>{g.price}</p>
+              <div style={{ marginTop:5, display:'flex', flexWrap:'wrap', gap:3 }}>
+                {g.tags.map(t => <span key={t} style={{ fontSize:10, color:'#4a5568' }}>{t}</span>)}
+              </div>
+              <button className="btn-outline" style={{ width:'100%', borderRadius:8, padding:'7px 0', fontSize:12, fontWeight:700, marginTop:9, cursor:'pointer' }}>구매 →</button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="card">
+        <SecHead icon="🔗" title="링크 제보하기" sub="쇼핑몰·할인 정보 직접 추가" />
+        <SubmitForm />
+      </div>
+
+      <div className="card">
+        <SecHead icon="👥" title="Runner's Feed" />
+        {FEED.map(f => <FeedItem key={f.id} item={f} />)}
+      </div>
+    </div>
+  );
+}
+
+function MarathonTab() {
+  const [target, setTarget] = useState(2);
+  const ev = EVENTS.find(e => e.id===target);
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:13 }} className="anim">
+
+      {/* Target Banner */}
+      {ev && (
+        <div className="card gradient-border">
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10 }}>
+            <div>
+              <p style={{ fontSize:10, color:'#6b7280', fontWeight:700, marginBottom:3 }}>🎯 TARGET RACE</p>
+              <p style={{ fontSize:17, fontWeight:900 }}>{ev.name}</p>
+              <p style={{ fontSize:11, color:'#6b7280', marginTop:3 }}>{ev.date.replace(/-/g,'.')} · {ev.loc}</p>
+            </div>
+            <span style={{ fontSize:32, fontWeight:900, color:'#c8f230', lineHeight:1, flexShrink:0, marginLeft:12 }}>{dday(ev.date)}</span>
+          </div>
+          <div style={{ display:'flex', gap:5, marginBottom:11 }}>
+            {ev.dists.map((d,i) => <span key={d} className={i===0?'dist-p':'dist-s'}>{d}</span>)}
+          </div>
+          <div className="card2" style={{ marginBottom:8 }}>
+            <p style={{ fontSize:10, color:'#6b7280', fontWeight:700, marginBottom:3 }}>당일 추천 의상</p>
+            <p style={{ fontSize:12, color:'#d1d5db' }}>{ev.outfit}</p>
+          </div>
+          <div className="card2">
+            <p style={{ fontSize:10, color:'#6b7280', fontWeight:700, marginBottom:3 }}>추천 훈련 코스</p>
+            <p style={{ fontSize:13, fontWeight:700 }}>팔당역 ~ 두물머리 LSD <span style={{ color:'#c8f230' }}>→ 코스 탭</span></p>
+          </div>
+        </div>
+      )}
+
+      {/* Event List */}
+      <div className="card">
+        <SecHead icon="🏆" title="Marathon Calendar" sub="전국 주요 대회 일정" />
+        <div style={{ display:'flex', flexDirection:'column', gap:11 }}>
+          {EVENTS.map(ev => {
+            const isTgt = ev.id===target;
+            return (
+              <div key={ev.id} className="press"
+                onClick={() => setTarget(ev.id)}
+                style={{ background: isTgt?'rgba(200,242,48,0.06)':'#22293a',
+                  border: isTgt?'1px solid rgba(200,242,48,0.4)':'1px solid #2d3548',
+                  borderRadius:14, padding:15 }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:7 }}>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:3 }}>
+                      {isTgt && <span style={{ fontSize:9, fontWeight:700, background:'#c8f230', color:'#0f1117', borderRadius:4, padding:'1px 6px' }}>TARGET</span>}
+                      <p style={{ fontSize:14, fontWeight:800 }}>{ev.name}</p>
+                    </div>
+                    <p style={{ fontSize:11, color:'#6b7280' }}>{ev.date.replace(/-/g,'.')} · {ev.loc}</p>
+                  </div>
+                  <span style={{ fontSize:17, fontWeight:900, color: isTgt?'#c8f230':'#6b7280', marginLeft:10 }}>{dday(ev.date)}</span>
+                </div>
+                <div style={{ display:'flex', gap:5, marginBottom:9 }}>
+                  {ev.dists.map((d,i) => <span key={d} className={i===0?'dist-p':'dist-s'}>{d}</span>)}
+                </div>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end' }}>
+                  <p style={{ fontSize:11, color:'#6b7280', flex:1, marginRight:8, lineHeight:1.4 }}>{ev.outfit}</p>
+                  <a href="#" style={{ fontSize:12, fontWeight:700, color:'#c8f230', textDecoration:'none', whiteSpace:'nowrap' }}>접수 →</a>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CourseTab() {
+  const [sel, setSel] = useState(null);
+
+  if (sel) {
+    return (
+      <div style={{ display:'flex', flexDirection:'column', gap:13 }} className="anim">
+        <button onClick={() => setSel(null)}
+          style={{ display:'flex', alignItems:'center', gap:6, background:'none', border:'none', color:'#c8f230', fontSize:14, fontWeight:700, cursor:'pointer', padding:0 }}>
+          ‹ Course List
+        </button>
+        <div className="card">
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10 }}>
+            <div>
+              <p style={{ fontSize:10, color:'#6b7280', fontWeight:700 }}>{sel.en}</p>
+              <h2 style={{ fontSize:19, fontWeight:900, marginTop:2 }}>{sel.name}</h2>
+              <p style={{ fontSize:11, color:'#6b7280', marginTop:3 }}>{sel.loc} · {sel.dist}</p>
+            </div>
+            <span className="checkin" style={{ flexShrink:0, marginLeft:10 }}>{sel.ci.toLocaleString()}명</span>
+          </div>
+          <div style={{ display:'flex', gap:7, marginBottom:14 }}>
+            <span className={`diff ${DIFF_CLS[sel.dif]}`}>{sel.dif}</span>
+            {sel.tags.map(t => <span key={t} className="tag">{t}</span>)}
+          </div>
+
+          {/* Map placeholder */}
+          <div style={{ background:'#22293a', border:'1px dashed #2d3548', borderRadius:12, height:150,
+            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', marginBottom:14, color:'#4a5568' }}>
+            <span style={{ fontSize:32 }}>🗺️</span>
+            <p style={{ fontSize:12, marginTop:6 }}>Naver Map — 연동 예정</p>
+            <p style={{ fontSize:10, marginTop:2 }}>{sel.name} GPS Route</p>
+          </div>
+
+          {[['🔒','보관소',sel.storage],['🚰','보급',sel.supply],['💡','러너스 꿀팁',sel.tip]].map(([ico,lbl,val]) => (
+            <div key={lbl} style={{ background:'#22293a', borderRadius:11, padding:13, display:'flex', gap:11, marginBottom:9,
+              border: lbl==='러너스 꿀팁'?'1px solid rgba(200,242,48,0.2)':'1px solid #2d3548' }}>
+              <span style={{ fontSize:18 }}>{ico}</span>
+              <div><p style={{ fontSize:10, color: lbl==='러너스 꿀팁'?'#c8f230':'#6b7280', fontWeight:700, marginBottom:2 }}>{lbl}</p>
+                <p style={{ fontSize:13, color:'#d1d5db' }}>{val}</p></div>
+            </div>
+          ))}
+          <button className="btn-outline" style={{ width:'100%', borderRadius:11, padding:'13px 0', fontSize:14, fontWeight:700, cursor:'pointer' }}>
+            🗺️ GPS 트래킹 시작하기
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:13 }} className="anim">
+      <div className="card">
+        <SecHead icon="🗺️" title="Running Courses" sub="주요 러닝 코스 가이드" />
+        <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+          {COURSES.map(c => (
+            <div key={c.id} className="card2 press" onClick={() => setSel(c)}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:3 }}>
+                    <p style={{ fontSize:14, fontWeight:800 }}>{c.name}</p>
+                    <span className={`diff ${DIFF_CLS[c.dif]}`}>{c.dif}</span>
+                  </div>
+                  <p style={{ fontSize:11, color:'#6b7280' }}>{c.en} · {c.dist} · {c.loc}</p>
+                  <div style={{ marginTop:7, display:'flex', flexWrap:'wrap', gap:5 }}>
+                    {c.tags.map(t => <span key={t} style={{ fontSize:11, background:'#2d3548', color:'#8892a4', borderRadius:6, padding:'2px 8px' }}>{t}</span>)}
+                  </div>
+                </div>
+                <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6, marginLeft:10, flexShrink:0 }}>
+                  <span className="checkin">{c.ci.toLocaleString()}명</span>
+                  <span style={{ color:'#4a5568', fontSize:16 }}>›</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Course submission */}
+      <div className="card">
+        <SecHead icon="📝" title="코스 제보하기" sub="새 코스·꿀팁 직접 추가" />
+        <SubmitForm />
+      </div>
+    </div>
+  );
+}
+
+/* ── APP ──────────────────────────────────────────── */
+function App() {
+  const [tab, setTab] = useState('home');
+  const [showAdd, setShowAdd] = useState(false);
+  const [courseModal, setCourseModal] = useState(null);
+
+  const NAV = [
+    { id:'home',     icon:'🏠', label:'Home'     },
+    { id:'store',    icon:'👟', label:'Store'    },
+    { id:'marathon', icon:'🏆', label:'Marathon' },
+    { id:'course',   icon:'🗺️', label:'Course'   },
+  ];
+
+  return (
+    <div style={{ minHeight:'100vh', background:'#0f1117', paddingBottom:76 }}>
+
+      {/* Top bar */}
+      <div className="top-bar">
+        <div style={{ maxWidth:768, margin:'0 auto', padding:'0 16px', height:52, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <span style={{ fontSize:20 }}>🏃</span>
+            <span style={{ fontWeight:900, fontSize:15, letterSpacing:2, color:'#c8f230' }}>RUNTRACK</span>
+            <span style={{ color:'#4a5568', fontSize:10 }}>// THE RUNNER'S HUB</span>
+          </div>
+          <button className="btn-lime" onClick={() => setShowAdd(true)}
+            style={{ borderRadius:9, padding:'7px 13px', fontSize:13, display:'flex', alignItems:'center', gap:4 }}>
+            + 링크 등록
+          </button>
+        </div>
+      </div>
+
+      {/* Content */}
+      <main style={{ maxWidth:768, margin:'0 auto', padding:'14px 14px 0' }}>
+        {tab==='home'     && <HomeTab     onAdd={() => setShowAdd(true)} onCourse={setCourseModal} />}
+        {tab==='store'    && <StoreTab    onAdd={() => setShowAdd(true)} />}
+        {tab==='marathon' && <MarathonTab />}
+        {tab==='course'   && <CourseTab />}
+      </main>
+
+      {/* Bottom nav */}
+      <div className="bottom-nav">
+        <div style={{ maxWidth:768, margin:'0 auto', display:'flex', alignItems:'center' }}>
+          {NAV.map((n, i) => (
+            <React.Fragment key={n.id}>
+              <button className={`nav-btn ${tab===n.id?'on':''}`} onClick={() => setTab(n.id)}>
+                <span style={{ fontSize:20 }}>{n.icon}</span>
+                <span style={{ fontSize:10, fontWeight: tab===n.id?700:400 }}>{n.label}</span>
+              </button>
+              {i===1 && (
+                <div style={{ flex:1, display:'flex', justifyContent:'center', alignItems:'center' }}>
+                  <button onClick={() => setShowAdd(true)}
+                    style={{ background:'#c8f230', borderRadius:14, width:46, height:38, display:'flex', alignItems:'center', justifyContent:'center',
+                             color:'#0f1117', fontWeight:900, fontSize:22, border:'none', cursor:'pointer' }}>+</button>
+                </div>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+
+      {showAdd   && <AddModal    onClose={() => setShowAdd(false)} />}
+      {courseModal && <CourseModal course={courseModal} onClose={() => setCourseModal(null)} />}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
